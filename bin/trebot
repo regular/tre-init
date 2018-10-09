@@ -1,0 +1,5 @@
+set -eu
+here=$(dirname $(realpath $0))
+sbot=${here}/../node_modules/scuttlebot-release/node_modules/scuttlebot/bin.js
+config=$(node -p "require('rc')('tre').config")
+ssb_appname=tre node "${sbot}" $@ --path=$(dirname "${config}")/.tre

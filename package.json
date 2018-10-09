@@ -1,0 +1,27 @@
+{
+  "name": "tre-init",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Jan Bölsche <jan@lagomorph.de> (https://regular.codes/)",
+  "license": "ISC",
+  "dependencies": {
+    "mkdirp": "^0.5.1",
+    "pull-stream": "^3.6.9",
+    "scuttlebot-release": "^12.2.3"
+  },
+  "devDependencies": {
+    "brfs": "^2.0.1",
+    "browserify": "^16.2.3",
+    "budo": "^11.4.1"
+  },
+  "browserify": {
+    "transform": [
+      "brfs"
+    ]
+  }
+}
