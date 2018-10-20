@@ -1,5 +1,7 @@
-set -eu
+set -exu
+#binjs=scuttlebot-release/node_modules/scuttlebot/bin.js
+binjs=scuttlebot/bin.js
 here=$(dirname $(realpath $0))
-sbot=${here}/../node_modules/scuttlebot-release/node_modules/scuttlebot/bin.js
+sbot=${here}/../node_modules/${binjs}
 config=$(node -p "require('rc')('tre').config")
-ssb_appname=tre node "${sbot}" $@ --path=$(dirname "${config}")/.tre
+ssb_appname=tre "${sbot}" $@ -- --path=$(dirname "${config}")/.tre

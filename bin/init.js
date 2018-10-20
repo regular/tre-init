@@ -44,6 +44,7 @@ ssbKeys.loadOrCreate(join(path, 'secret'), (err, keys) => {
         if (err) console.error(err)
         console.log(JSON.stringify({
           caps: {shs: caps},
+          appKey: caps,
           port,
           ws: {port: port + 1},
           connections: {
@@ -55,9 +56,9 @@ ssbKeys.loadOrCreate(join(path, 'secret'), (err, keys) => {
               net: [{ transform: "shs" }]
             }
           },
-          tre: {branches: folders},
-          autofollow: keys.public,
-          autoname: folders.machines
+          //tre: {branches: folders},
+          //autofollow: keys.public,
+          //autoname: folders.machines
         }, null, 2))
         setTimeout( ()=> process.exit(0), 200)
       })
