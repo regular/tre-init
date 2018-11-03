@@ -1,6 +1,6 @@
 set -exu
-#binjs=scuttlebot-release/node_modules/scuttlebot/bin.js
-binjs=scuttlebot/bin.js
+binjs=scuttlebot-release/node_modules/scuttlebot/bin.js
+#binjs=scuttlebot/bin.js
 here=$(dirname $(realpath $0))
 sbot=${here}/../node_modules/${binjs}
 config=$(node -p "require('rc')('tre').config")
