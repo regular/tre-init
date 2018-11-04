@@ -7,4 +7,4 @@ keys=$(cat "${secret}"|grep -v '^#')
 remote=$(bash ${here}/trebot ws.getAddress)
 npx localstorage write "${host}:${port}" tre-remote "${remote}"
 npx localstorage write "${host}:${port}" tre-keypair "${keys}"
-npx budo --no-portfind --port ${port} --host "${host}" $@
+npx budo --static-options [ --dotfiles allow ] --no-portfind --port ${port} --host "${host}" $@
