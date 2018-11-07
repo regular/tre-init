@@ -1,10 +1,16 @@
 set -exu
 here=$(dirname $(realpath $0))
-port=$(node -p "require('rc')('tre').budo.port")
-host=$(node -p "require('rc')('tre').budo.host")
-secret=$(dirname $(node -p "require('rc')('tre').config"))/.tre/browser-keys
+npm_bin="${here}/../node_modules/.bin"
+
+conf () {
+  node -p "require(\"${here}/../node_modules/rc\")('tre').$1"
+}
+
+port=$(conf budo.port)
+host=$(conf budo.host)
+secret=$(dirname $(conf config))/.tre/browser-keys
 keys=$(cat "${secret}"|grep -v '^#')
 remote=$(bash ${here}/trebot ws.getAddress)
-npx localstorage write "${host}:${port}" tre-remote "${remote}"
-npx localstorage write "${host}:${port}" tre-keypair "${keys}"
-npx budo --static-options [ --dotfiles allow ] --no-portfind --port ${port} --host "${host}" $@
+${npm_bin}/localstorage write "${host}:${port}" tre-remote "${remote}"
+${npm_bin}/localstorage write "${host}:${port}" tre-keypair "${keys}"
+${npm_bin}/budo --static-options [ --dotfiles allow ] --no-portfind --port ${port} --host "${host}" $@
