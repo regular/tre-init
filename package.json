@@ -26,14 +26,10 @@
     "ssb-keys": "^7.1.3"
   },
   "devDependencies": {
-    "brfs": "^2.0.1",
     "browserify": "^16.2.3",
     "budo": "^11.4.1",
-    "mutant": "^3.22.1"
-  },
-  "browserify": {
-    "transform": [
-      "brfs"
-    ]
+    "collect-mutations": "^1.0.0",
+    "mutant": "^3.22.1",
+    "tre-client": "^1.1.0"
   }
 }
