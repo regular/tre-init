@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const crypto = require('crypto')
 const {join} = require('path')
 const createSbot = require('scuttlebot-release/node_modules/scuttlebot')

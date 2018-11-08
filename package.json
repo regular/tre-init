@@ -4,8 +4,9 @@
   "description": "Initialize and test a new ssb network",
   "main": "index.js",
   "bin": {
+    "tre-bot": "bin/trebot.sh",
     "tre-init": "bin/init.js",
-    "trebot": "bin/trebot"
+    "tre-debug": "bin/debug.sh"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
