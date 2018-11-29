@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('fs')
 const crypto = require('crypto')
-const {join} = require('path')
+const {join, resolve} = require('path')
 const createSbot = require('scuttlebot-release/node_modules/scuttlebot')
 const merge = require('lodash.merge')
 
@@ -19,6 +19,7 @@ const port = Math.floor(50000 + 15000 * Math.random())
 const branches = [
   {type: 'folder', name: 'Users', key: 'about'},
   {type: 'folder', name: '.Machines', key: 'machines'},
+  {type: 'folder', name: '.Prototypes', key: 'prototypes'},
   {type: 'folder', name: 'Assets', children: [
     {type: 'folder', name: 'Icons'},
     {type: 'folder', name: 'Stylesheets'},
@@ -61,10 +62,32 @@ ssb.whoami( (err, feed) => {
       autoname: folders.machines
     }
     mergeFromPackageJson(config)
-    writeConfig(config)
-    setTimeout( ()=> process.exit(0), 200)
+    if (config.prototypes) makePrototypes(Object.keys(config.prototypes).filter(k => config.prototypes[k]), config, err => {
+      if (err) throw err
+      writeConfig(config)
+      setTimeout( ()=> process.exit(0), 200)
+    })
   })
 })
+
+function makePrototypes(modules, config, cb) {
+  const {root, prototypes} = config.tre.branches
+  pull(
+    pull.values(modules),
+    pull.asyncMap( (m, cb) =>{
+      const f = require(resolve(`node_modules/${m}`)).factory
+      const content = f(config).prototype()
+      if (!content) return cb(new Error(`${m} prototype() returned no content`))
+      Object.assign(content, {root, branch: prototypes})
+      ssb.publish(content, cb)
+    }),
+    pull.drain( kv =>{
+      config.tre.prototypes = config.tre.prototypes || {}
+      config.tre.prototypes[kv.value.content.type] = kv.key
+      console.error(`Published ${kv.value.content.type} prototype as ${kv.key}`)
+    }, cb)
+  )
+}
 
 function mergeFromPackageJson(config) {
   let pkg
