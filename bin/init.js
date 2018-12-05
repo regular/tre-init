@@ -39,42 +39,61 @@ const ssb = createSbot({
     shs: caps
   }
 })
+setTimeout( () => init(ssb, err => {
+  if (err) {
+    console.error(err)
+    process.exit(1)
+  } else {
+    console.error('Done')
+    setTimeout( ()=>process.exit(0), 300)
+  }
+}), 300)
 
-ssb.whoami( (err, feed) => {
-  if (err) return console.error(err)
-  console.error('pub key', feed.id)
-  console.error('app key', caps)
+function init(ssb, cb) {
+  ssb.whoami( (err, feed) => {
+    if (err) return cb(err)
+    console.error('pub key', feed.id)
+    console.error('app key', caps)
 
-  buildTree(ssb, branches, (err, folders) => {
-    if (err) console.error(err)
-    const config = {
-      caps: {shs: caps},
-      appKey: caps,
-      port,
-      ws: {port: port + 1},
-      master: [browserKeys.id],
-      budo: {
-        host: 'localhost',
-        port: port + 2
-      },
-      tre: {branches: folders},
-      autofollow: keys.public,
-      autoname: folders.machines
-    }
-    mergeFromPackageJson(config)
-    if (config.prototypes) makePrototypes(Object.keys(config.prototypes).filter(k => config.prototypes[k]), config, err => {
-      if (err) throw err
-      writeConfig(config)
-      setTimeout( ()=> process.exit(0), 200)
+    buildTree(ssb, branches, (err, folders) => {
+      if (err) return cb(err)
+      const config = {
+        caps: {shs: caps},
+        appKey: caps,
+        port,
+        ws: {port: port + 1},
+        master: [browserKeys.id],
+        budo: {
+          host: 'localhost',
+          port: port + 2
+        },
+        tre: {branches: folders},
+        autofollow: keys.public,
+        autoname: folders.machines
+      }
+      mergeFromPackageJson(config)
+      if (!config.prototypes) {
+        writeConfig(config)
+        return cb(null)
+      }
+      console.error('Publishing prototypes ...')
+      makePrototypes(ssb, Object.keys(config.prototypes).filter(k => config.prototypes[k]), config, err => {
+        if (err) return cb(err)
+        writeConfig(config)
+        cb(null)
+      })
     })
   })
-})
+}
 
-function makePrototypes(modules, config, cb) {
+// --
+
+function makePrototypes(ssb, modules, config, cb) {
   const {root, prototypes} = config.tre.branches
   pull(
     pull.values(modules),
     pull.asyncMap( (m, cb) =>{
+      console.error(' ', m, '...')
       const f = require(resolve(`node_modules/${m}`)).factory
       const content = f(config).prototype()
       if (!content) return cb(new Error(`${m} prototype() returned no content`))
