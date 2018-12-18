@@ -75,12 +75,13 @@ function init(ssb, cb) {
           autoname: folders.machines
         }
         mergeFromPackageJson(config)
-        if (!config.prototypes) {
+        const {prototypes} = configFromPkg()
+        if (!prototypes) {
           writeConfig(config)
           return cb(null)
         }
         console.error('Publishing prototypes ...')
-        makePrototypes(ssb, Object.keys(config.prototypes).filter(k => config.prototypes[k]), config, err => {
+        makePrototypes(ssb, Object.keys(prototypes).filter(k => prototypes[k]), config, err => {
           if (err) return cb(err)
           writeConfig(config)
           cb(null)
