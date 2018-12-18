@@ -4,6 +4,7 @@ const crypto = require('crypto')
 const {join, resolve} = require('path')
 const createSbot = require('scuttlebot-release/node_modules/scuttlebot')
 const merge = require('lodash.merge')
+const traverse = require('traverse')
 
 const pull = require('pull-stream')
 const ssbKeys = require('scuttlebot-release/node_modules/ssb-keys')
@@ -57,36 +58,74 @@ function init(ssb, cb) {
 
     buildTree(ssb, branches, (err, folders) => {
       if (err) return cb(err)
-      const config = {
-        caps: {shs: caps},
-        appKey: caps,
-        port,
-        ws: {port: port + 1},
-        master: [browserKeys.id],
-        budo: {
-          host: 'localhost',
-          port: port + 2
-        },
-        tre: {branches: folders},
-        autofollow: keys.public,
-        autoname: folders.machines
-      }
-      mergeFromPackageJson(config)
-      if (!config.prototypes) {
-        writeConfig(config)
-        return cb(null)
-      }
-      console.error('Publishing prototypes ...')
-      makePrototypes(ssb, Object.keys(config.prototypes).filter(k => config.prototypes[k]), config, err => {
+      publishMessages(ssb, folders, (err, branches) => {
         if (err) return cb(err)
-        writeConfig(config)
-        cb(null)
+        const config = {
+          caps: {shs: caps},
+          appKey: caps,
+          port,
+          ws: {port: port + 1},
+          master: [browserKeys.id],
+          budo: {
+            host: 'localhost',
+            port: port + 2
+          },
+          tre: {branches},
+          autofollow: keys.public,
+          autoname: folders.machines
+        }
+        mergeFromPackageJson(config)
+        if (!config.prototypes) {
+          writeConfig(config)
+          return cb(null)
+        }
+        console.error('Publishing prototypes ...')
+        makePrototypes(ssb, Object.keys(config.prototypes).filter(k => config.prototypes[k]), config, err => {
+          if (err) return cb(err)
+          writeConfig(config)
+          cb(null)
+        })
       })
     })
   })
 }
 
 // --
+
+function publishMessages(ssb, folders, cb) {
+
+  function resolveVars(obj) {
+    traverse(obj).forEach(function(x) {
+      if (typeof x == 'string' && x[0] == '%') {
+        const key = folders[x.substr(1)]
+        if (key) {
+          this.update(key) 
+        } else {
+          throw new Error('unknown named message: ' + x)
+        }
+      }
+    })
+  }
+
+  const {messages} = configFromPkg()
+  if (!messages) return cb(null, folders)
+  pull(
+    pull.keys(messages),
+    pull.asyncMap( (name, cb) => {
+      const content = messages[name]
+      resolveVars(content)
+      ssb.publish(content, (err, msg) => {
+        if (err) return cb(err)
+        folders[name] = msg.key
+        cb(null, msg)
+      })
+    }),
+    pull.collect( err => {
+      if (err) return cb(err)
+      cb(null, folders)
+    })
+  )
+}
 
 function makePrototypes(ssb, modules, config, cb) {
   const {root, prototypes} = config.tre.branches
@@ -108,7 +147,7 @@ function makePrototypes(ssb, modules, config, cb) {
   )
 }
 
-function mergeFromPackageJson(config) {
+function configFromPkg() {
   let pkg
   try {
     pkg = JSON.parse(fs.readFileSync('package.json'))
@@ -116,9 +155,13 @@ function mergeFromPackageJson(config) {
     console.error('Unable to read package.json:', err.message)
     return
   }
-  const c = pkg['tre-init']
-  if (!c) return
-  merge(config, c)
+  return pkg['tre-init']
+}
+
+function mergeFromPackageJson(config) {
+  const {plugins} = configFromPkg()
+  if (!plugins) return
+  merge(config, {plugins})
 }
 
 function writeConfig(config) {
