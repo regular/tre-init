@@ -6,6 +6,7 @@
   "bin": {
     "tre-bot": "bin/trebot.sh",
     "tre-init": "bin/init.js",
+    "tre-invite": "bin/invite.js",
     "tre-debug": "bin/debug.sh"
   },
   "scripts": {
