@@ -29,3 +29,22 @@ In case they did not exist before, new keypairs were created in `.tre/secret` an
 tre-bot server
 ```
 
+## Create a pub
+
+```
+tre-pub-config | ssh myserver.com 'mkdir -p .myappname && cat - > .myappname/config'
+# run `ssb_appname=myappname sbot server` on your server
+ssh korn 'ssb_appname=myappname sbot getAddress' > .tre/remotes
+# edit .tre/remotes so that it looks something like
+{
+  "myserver": "net:138.231.111.84:42632~shs:6odsaDg5OpsFlfa7LLSLxikxF5ze4DN03bAz6vrz7uMQ="
+}
+
+## Crete an invite code
+
+```
+tre-invite > invite.json
+```
+
+This invite code can be pasted into bay-of-plenty. It will instruct the pub to follow the user, the user to follow the pub and you, and give the user a name you can specify in invite.json.
+
