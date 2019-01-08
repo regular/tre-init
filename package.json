@@ -6,8 +6,9 @@
   "bin": {
     "tre-bot": "bin/trebot.sh",
     "tre-init": "bin/init.js",
-    "tre-invite": "bin/invite.js",
-    "tre-debug": "bin/debug.sh"
+    "tre-debug": "bin/debug.sh",
+    "tre-pub-config": "bin/pub.js",
+    "tre-invite": "bin/invite.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
