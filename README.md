@@ -56,4 +56,46 @@ tre-apps-deploy <source.js>
 
 browserifies source.js, uploads the result as a blob and publishes a message of type `webapp`. If a previous webapp exists and was deployed from a repo with the same `origin  remote and from the same git branch, and by the same author, that pre-existing webapp is updated. (a new revision of that webapp is posted).
 
+Here's an example message piblished by `tre-apps-deploy`
+
+```
+{
+  "previous": "%GkSmUhYX7jM5rzHobHlUHTzgqc9LKxM8T5eRwuJW624=.sha256",
+  "sequence": 28,
+  "author": "@h8sMNhOo43PP8HX+9B3PCJPchqxhpPXgzwFG7HIaNbc=.ed25519",
+  "timestamp": 1547036143789,
+  "hash": "sha256",
+  "content": {
+    "type": "webapp",
+    "name": "tre-init",
+    "description": "Initialize and test a new ssb network",
+    "keywords": [
+      "ssb",
+      "tre"
+    ],
+    "config": {
+      "tre": {
+        "branches": {
+          "root": "%eMe2hfQ+gI4NKQJzoycSQmefvSLKkwmdXBGj6JRQHwM=.sha256",
+          "about": "%LQu4ZrTcuS2JhiYGAwk1Lg+Wee5M7OH74XnoSVZ1TdQ=.sha256",
+          "machines": "%IPYCOlf24z5BeN9BSGPZfWpDIKptDbeYDnEryKldxew=.sha256",
+          "prototypes": "%38ZbMKMoC4oVXeTZ+bx3objqO8SL3ZYXz6wLBprnmd8=.sha256",
+          "webapps": "%lkexgs1dnCCvkOjbRyJAUnWwbk1igt4DqOhBe9U3klY=.sha256",
+          "trash": "%152k3CQRaeK7K+hZy41QCo8aRZjaUg6SyfgG8FeGeLo=.sha256"
+        }
+      }
+    },
+    "codeBlob": "&IBbpG0szrPmtzbPwXKN0ZijQ9KeIJpzh0JYnIrZx6SE=.sha256",
+    "lockBlob": "&iwEhkt7JCD9tRnFzkAgRvgdeARj450Db8whC2QMbhqU=.sha256",
+    "commit": "v1.6.0-6-g01484fd",
+    "repository": "git@github.com:regular/tre-init.git",
+    "repositoryBranch": "master",
+    "revisionBranch": "%GkSmUhYX7jM5rzHobHlUHTzgqc9LKxM8T5eRwuJW624=.sha256",
+    "revisionRoot": "%39L6vcMxCbcDrRUJyUWSJd2oJ5mA55aG0ecNNijlSaw=.sha256",
+    "change-log": [
+      "01484fd5aa5c0376e02df540dbee7d63a7239992 Add tre-apps-deploy to Readme"
+    ]
+  },
+  "signature": "rtkZoJkNRDoWUi39gU+LMmVfkOODLdLM/B7sSnbpXNG02/H21DhNazmEmK5ZbUJrEw5R6HgBJLaSY0G+shbUCw==.sig.ed25519"
+}
 ```
