@@ -8,7 +8,9 @@
     "tre-init": "bin/init.js",
     "tre-debug": "bin/debug.sh",
     "tre-pub-config": "bin/pub.js",
-    "tre-invite": "bin/invite.js"
+    "tre-invite": "bin/invite.js",
+    "tre-apps-list": "bin/apps-list.js",
+    "tre-apps-deploy": "bin/apps-deploy.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
