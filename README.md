@@ -48,3 +48,12 @@ tre-invite > invite.json
 
 This invite code can be pasted into bay-of-plenty. It will instruct the pub to follow the user, the user to follow the pub and you, and give the user a name you can specify in invite.json.
 
+## deploy an application
+
+```
+tre-apps-deploy <source.js>
+```
+
+browserifies source.js, uploads the result as a blob and publishes a message of type `webapp`. If a previous webapp exists and was deployed from a repo with the same `origin  remote and from the same git branch, and by the same author, that pre-existing webapp is updated. (a new revision of that webapp is posted).
+
+```
