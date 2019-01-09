@@ -11,7 +11,8 @@ const file = require('pull-file')
 const Browserify = require('browserify')
 const toPull = require('stream-to-pull-stream')
 
-const dryRun = true
+const dryRun = false
+const force = false
 
 if (process.argv.length<3) {
   console.error('USAGE: tre-apps-deploy <index.js>')
@@ -30,7 +31,9 @@ if (!path) {
 const keys = ssbKeys.loadSync(join(path, '../.tre/secret'))
 
 isClean( (err, clean) => {
-  //if (err || !clean) process.exit(1)
+  if (err || !clean) {
+    if (!force) process.exit(1)
+  }
   const {pkg,path} = readPkg()
   const basic = {
     type: 'webapp',
@@ -151,17 +154,37 @@ function publish(conf, keys, content, cb) {
           content.revisionRoot = revisionRoot(webapp)
           console.error('Updating existing webapp', content.revisionRoot.substr(0, 5))
         }
-        if (dryRun) {
-          ssb.close()
-          return cb(null, {value: content})
-        }
-        ssb.publish(content, (err, kv) => {
-          ssb.close()
-          if (err) return cb(err)
-          cb(null, kv)
+        getLogMessages(webapp, content, (err, commits) => {
+          if (err) {
+            ssb.close()
+            return cb(err)
+          }
+          content['change-log'] = commits
+          if (dryRun) {
+            ssb.close()
+            return cb(null, {value: content})
+          }
+          ssb.publish(content, (err, kv) => {
+            ssb.close()
+            if (err) return cb(err)
+            cb(null, kv)
+          })
         })
       })
     )
+  })
+}
+function getLogMessages(webapp, content, cb) {
+  if (!webapp) return cb(null, [])
+  const before = webapp.value.content.commit
+  const after = content.commit
+  if (!before || !after) return cb(null, [])
+  if (before.includes('dirty') || after.includes('-dirty')) return cb(null, null)
+  console.log(before, after)
+  exec(`git log --pretty=oneline ${before}..${after}`, (err, logs) => {
+    if (err) return cb(err)
+    const lines = logs.split('\n').filter(Boolean)
+    cb(null, lines)
   })
 }
 
