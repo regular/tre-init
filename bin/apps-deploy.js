@@ -10,6 +10,7 @@ const readPkg = require('read-pkg-up').sync
 const file = require('pull-file')
 const Browserify = require('browserify')
 const toPull = require('stream-to-pull-stream')
+const htime = require('human-time')
 
 const dryRun = false
 const force = false
@@ -142,7 +143,8 @@ function publish(conf, keys, content, cb) {
       pull.drain( e =>{
         const revRoot = e.key.slice(-1)[0]
         const content = e.value.value.content
-        console.log(`${revRoot.substr(0,5)}:${e.value.key.substr(0,5)}`, content.name, content.repository, content.repositoryBranch, content.commit)
+        console.log(
+          `${revRoot.substr(0,5)}:${e.value.key.substr(0,5)}`, content.name, content.repositoryBranch, content.commit, htime(new Date(e.value.value.timestamp)))
         webapps.push(e.value) // kv
       }, err => {
         if (err) return cb(err)
