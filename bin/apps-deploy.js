@@ -11,9 +11,11 @@ const file = require('pull-file')
 const Browserify = require('browserify')
 const toPull = require('stream-to-pull-stream')
 const htime = require('human-time')
+const indexhtmlify = require('indexhtmlify')
+const metadataify = require('metadataify')
+const argv = require('minimist')(process.argv.slice(2))
 
-const dryRun = false
-const force = false
+const {dryRun, force} = argv
 
 if (process.argv.length<3) {
   console.error('USAGE: tre-apps-deploy <index.js>')
@@ -49,7 +51,7 @@ isClean( (err, clean) => {
   }
   const done = multicb({pluck:1, spread: true})
 
-  compile(sourceFile, done())
+  compile(sourceFile, Object.assign({}, pkg, argv), done())
   upload(conf, keys, pkgLckPath, done())
   gitInfo(done())
    
@@ -91,7 +93,7 @@ showList(conf, keys, err  => {
 })
 */
 
-function compile(sourceFile, cb) {
+function compile(sourceFile, opts, cb) {
   const browserify = Browserify()
   browserify.add(sourceFile)
   ssbClient(keys, Object.assign({},
@@ -99,7 +101,7 @@ function compile(sourceFile, cb) {
   ), (err, ssb) => {
     if (err) return cb(err)
     pull(
-      toPull.source(browserify.bundle()),
+      toPull.source(browserify.bundle().pipe(indexhtmlify(opts).pipe(metadataify(opts)))),
       ssb.blobs.add( (err, hash) =>{
         ssb.close()
         cb(err, hash)

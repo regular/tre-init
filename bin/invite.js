@@ -7,10 +7,6 @@ const {isMsg} = require('ssb-ref')
 const argv = require('minimist')(process.argv.slice(2))
 const showList = require('./apps-list')
 
-if (!argv.name) {
-  console.error("Please specify a name (Example: --name 'Regular Gonzales')")
-  process.exit(1)
-}
 const autoname = argv.name
 
 const conf = require('rc')('tre')
@@ -73,13 +69,21 @@ showList(conf, keys, (err, apps) => {
       process.exit(1)
     }
     console.error('got invite code', code)
-    console.log(JSON.stringify({
+    const invite = {
       caps: conf.caps,
       autofollow: keys.id,
       autoinvite: code,
       autoname,
       boot
-    }, null, 2))
+    }
+    if (!autoname) delete invite.autoname
+    if (!argv.compact) {
+      console.log(JSON.stringify(invite, null, 2))
+    } else {
+      compact = `*${invite.caps.shs}.ed25519${invite.autofollow}${invite.boot}${invite.autoinvite}`
+      if (autoname) compact += "'" + Buffer.from(autoname, 'utf8').toString('base64')
+      console.log(compact)
+    }
   })
 })
 
