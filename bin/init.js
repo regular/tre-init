@@ -6,6 +6,7 @@ const createSbot = require('scuttlebot-release/node_modules/scuttlebot')
 const merge = require('lodash.merge')
 const traverse = require('traverse')
 const multicb = require('multicb')
+const argv = require('minimist')(process.argv.slice(2))
 
 const pull = require('pull-stream')
 const ssbKeys = require('scuttlebot-release/node_modules/ssb-keys')
@@ -34,6 +35,7 @@ const branches = [
   {type: 'folder', name: '.Trash', key: 'trash'},
 ]
 
+copyKeys()
 const keys = ssbKeys.loadOrCreateSync(join(path, 'secret'))
 const browserKeys = ssbKeys.loadOrCreateSync(join(path, 'browser-keys'))
 
@@ -216,4 +218,14 @@ function buildTree(ssb, branches, cb) {
     }
 
   })
+}
+
+function copyKeys() {
+  let keySrc = argv['copy-keys']
+  if (keySrc) {
+    if (keySrc == true) {
+      keySrc = join(process.env.HOME, '.ssb', 'secret')
+    }
+    fs.copyFileSync(keySrc, join(path, 'secret'), fs.constants.COPYFILE_EXCL)
+  }
 }
