@@ -5,6 +5,7 @@ const {join, resolve} = require('path')
 const createSbot = require('scuttlebot-release/node_modules/scuttlebot')
 const merge = require('lodash.merge')
 const traverse = require('traverse')
+const multicb = require('multicb')
 
 const pull = require('pull-stream')
 const ssbKeys = require('scuttlebot-release/node_modules/ssb-keys')
@@ -14,7 +15,8 @@ const path = join(process.cwd(), '.tre')
 mkdirp.sync(path)
 fs.symlinkSync(fs.realpathSync('node_modules'), path + '/node_modules')
 
-const caps = crypto.randomBytes(32).toString('base64')
+const netKeys = ssbKeys.generate()
+const caps = netKeys.public.split('.')[0]
 const port = Math.floor(50000 + 15000 * Math.random())
 
 const branches = [
@@ -35,7 +37,7 @@ const branches = [
 const keys = ssbKeys.loadOrCreateSync(join(path, 'secret'))
 const browserKeys = ssbKeys.loadOrCreateSync(join(path, 'browser-keys'))
 
-const ssb = createSbot({
+const ssb = createSbot.use(require('ssb-private'))({
   keys, path, caps: {
     shs: caps
   }
@@ -56,7 +58,17 @@ function init(ssb, cb) {
     console.error('pub key', feed.id)
     console.error('app key', caps)
 
-    buildTree(ssb, branches, (err, folders) => {
+    const done = multicb({pluck: 1, spread: true})
+
+    const content = {
+      type: 'network-key',
+      description: 'This key can be used to proof that you created this network. Keep it safe',
+      netKeys
+    } 
+    ssb.private.publish(content, [feed.id], done())
+    buildTree(ssb, branches, done()) 
+    
+    done((err, private_msg, folders) => {
       if (err) return cb(err)
       publishMessages(ssb, folders, (err, branches) => {
         if (err) return cb(err)
@@ -70,9 +82,7 @@ function init(ssb, cb) {
             host: 'localhost',
             port: port + 2
           },
-          tre: {branches},
-          autofollow: keys.public,
-          autoname: folders.machines
+          tre: {branches}
         }
         mergeFromPackageJson(config)
         const {prototypes} = configFromPkg()
@@ -156,7 +166,7 @@ function configFromPkg() {
     console.error('Unable to read package.json:', err.message)
     return
   }
-  return pkg['tre-init']
+  return pkg['tre-init'] || {}
 }
 
 function mergeFromPackageJson(config) {
