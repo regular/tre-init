@@ -7,6 +7,10 @@ const merge = require('lodash.merge')
 const traverse = require('traverse')
 const multicb = require('multicb')
 const argv = require('minimist')(process.argv.slice(2))
+const debug = require('debug')('tre-init')
+
+const Importer = require('tre-file-importer')
+const fileFromPath = require('tre-file-importer/file')
 
 const pull = require('pull-stream')
 const ssbKeys = require('scuttlebot-release/node_modules/ssb-keys')
@@ -25,9 +29,9 @@ const branches = [
   {type: 'folder', name: '.Machines', key: 'machines'},
   {type: 'folder', name: '.Prototypes', key: 'prototypes'},
   {type: 'folder', name: 'Assets', children: [
-    {type: 'folder', name: 'Icons'},
-    {type: 'folder', name: 'Stylesheets'},
-    {type: 'folder', name: 'Fonts'},
+    {type: 'folder', name: 'Images', key: 'images'},
+    {type: 'folder', name: 'Stylesheets', key: 'stylesheets'},
+    {type: 'folder', name: 'Fonts', key: 'fonts'},
   ]},
   {type: 'folder', name: '.Code', children: [
     {type: 'folder', name: 'WebApps', key: 'webapps'}
@@ -39,11 +43,13 @@ copyKeys()
 const keys = ssbKeys.loadOrCreateSync(join(path, 'secret'))
 const browserKeys = ssbKeys.loadOrCreateSync(join(path, 'browser-keys'))
 
-const ssb = createSbot.use(require('ssb-private'))({
-  keys, path, caps: {
-    shs: caps
-  }
-})
+const ssb = createSbot
+  .use(require('ssb-private'))
+  .use(require('scuttlebot-release/node_modules/ssb-blobs')) ({
+    keys, path, caps: {
+      shs: caps
+    }
+  })
 setTimeout( () => init(ssb, err => {
   if (err) {
     console.error(err)
@@ -72,31 +78,35 @@ function init(ssb, cb) {
     
     done((err, private_msg, folders) => {
       if (err) return cb(err)
-      publishMessages(ssb, folders, (err, branches) => {
+      const importers = 
+      importFiles(ssb, (err, messages) => {
         if (err) return cb(err)
-        const config = {
-          caps: {shs: caps},
-          appKey: caps,
-          port,
-          ws: {port: port + 1},
-          master: [browserKeys.id],
-          budo: {
-            host: 'localhost',
-            port: port + 2
-          },
-          tre: {branches}
-        }
-        mergeFromPackageJson(config)
-        const {prototypes} = configFromPkg()
-        if (!prototypes) {
-          writeConfig(config)
-          return cb(null)
-        }
-        console.error('Publishing prototypes ...')
-        makePrototypes(ssb, Object.keys(prototypes).filter(k => prototypes[k]), config, err => {
+        publishMessages(ssb, folders, messages, (err, branches) => {
           if (err) return cb(err)
-          writeConfig(config)
-          cb(null)
+          const config = {
+            caps: {shs: caps},
+            appKey: caps,
+            port,
+            ws: {port: port + 1},
+            master: [browserKeys.id],
+            budo: {
+              host: 'localhost',
+              port: port + 2
+            },
+            tre: {branches}
+          }
+          mergeFromPackageJson(config)
+          const {prototypes} = configFromPkg()
+          if (!prototypes) {
+            writeConfig(config)
+            return cb(null)
+          }
+          console.error('Publishing prototypes ...')
+          makePrototypes(ssb, Object.keys(prototypes).filter(k => prototypes[k]), config, err => {
+            if (err) return cb(err)
+            writeConfig(config)
+            cb(null)
+          })
         })
       })
     })
@@ -105,7 +115,42 @@ function init(ssb, cb) {
 
 // --
 
-function publishMessages(ssb, folders, cb) {
+function importFiles(ssb, cb) {
+  const {importers, files} = configFromPkg()
+  if (!importers || !files) return cb(null, {})
+  
+  const fileImporter = Importer(ssb)
+  Object.keys(importers).filter(k => importers[k]).forEach(modname => {
+    const m = modname == '.' ? require(resolve('.')) : require(resolve(`node_modules/${modname}`))
+    fileImporter.use(m)
+  })
+  
+  pull(
+    pull.keys(files),
+    pull.asyncMap( (name, cb) => {
+      const {content, path} = files[name]
+      fileImporter.importFile(fileFromPath(path), {}, (err, _content) => {
+        if (err) return cb(err)
+        cb(null, {
+          name,
+          content: merge(_content, content)
+        })
+      })
+    }),
+    pull.collect( (err, contents) => {
+      if (err) return cb(err)
+      cb(
+        null,
+        contents.reduce( (acc, {name, content}) => {
+          acc[name] = content
+          return acc
+        }, {})
+      )
+    })
+  )
+}
+
+function publishMessages(ssb, folders, fileMessages, cb) {
 
   function resolveVars(obj) {
     traverse(obj).forEach(function(x) {
@@ -120,13 +165,14 @@ function publishMessages(ssb, folders, cb) {
     })
   }
 
-  const {messages} = configFromPkg()
-  if (!messages) return cb(null, folders)
+  const messages = Object.assign({}, fileMessages, configFromPkg().messages || {})
+  if (!Object.keys(messages)) return cb(null, folders)
   pull(
     pull.keys(messages),
     pull.asyncMap( (name, cb) => {
       const content = messages[name]
       resolveVars(content)
+      debug('publishing %O', content)
       ssb.publish(content, (err, msg) => {
         if (err) return cb(err)
         folders[name] = msg.key
