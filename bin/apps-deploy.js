@@ -234,7 +234,7 @@ function isClean(cb) {
 function gitInfo(cb) {
   const done = multicb({pluck: 1, spread: true})
 
-  exec('git describe --dirty', done())
+  exec('git describe --dirty --always', done())
   exec('git remote get-url origin', done())
   exec('git symbolic-ref --short HEAD', done())
 

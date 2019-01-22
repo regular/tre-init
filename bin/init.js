@@ -3,6 +3,7 @@ const fs = require('fs')
 const crypto = require('crypto')
 const {join, resolve} = require('path')
 const createSbot = require('scuttlebot-release/node_modules/scuttlebot')
+const {isMsg} = require('ssb-ref')
 const merge = require('lodash.merge')
 const traverse = require('traverse')
 const multicb = require('multicb')
@@ -67,61 +68,66 @@ function init(ssb, cb) {
     console.error('app key', caps)
 
     const done = multicb({pluck: 1, spread: true})
-
-    const content = {
-      type: 'network-key',
-      description: 'This key can be used to proof that you created this network. Keep it safe',
-      netKeys
-    } 
-    ssb.private.publish(content, [feed.id], done())
+    sendNetkey(netKeys, done())
     buildTree(ssb, branches, done()) 
     
     done((err, private_msg, folders) => {
       if (err) return cb(err)
-      const importers = 
-      importFiles(ssb, (err, messages) => {
-        if (err) return cb(err)
-        publishMessages(ssb, folders, messages, (err, branches) => {
+      publishPrototypes(ssb, folders, (err, prototypes) => {
+        importFiles(ssb, prototypes, (err, messages) => {
           if (err) return cb(err)
-          const config = {
-            caps: {shs: caps},
-            appKey: caps,
-            port,
-            ws: {port: port + 1},
-            master: [browserKeys.id],
-            budo: {
-              host: 'localhost',
-              port: port + 2
-            },
-            tre: {branches}
-          }
-          mergeFromPackageJson(config)
-          const {prototypes} = configFromPkg()
-          if (!prototypes) {
-            writeConfig(config)
-            return cb(null)
-          }
-          console.error('Publishing prototypes ...')
-          makePrototypes(ssb, Object.keys(prototypes).filter(k => prototypes[k]), config, err => {
+          publishMessages(ssb, folders, messages, (err, branches) => {
             if (err) return cb(err)
+            const config = {
+              caps: {shs: caps},
+              appKey: caps,
+              port,
+              ws: {port: port + 1},
+              master: [browserKeys.id],
+              budo: {
+                host: 'localhost',
+                port: port + 2
+              },
+              tre: {branches, prototypes}
+            }
+            mergeFromPackageJson(config)
             writeConfig(config)
             cb(null)
           })
         })
       })
     })
+
+    function sendNetkey(netKeys, cb) {
+      const content = {
+        type: 'network-key',
+        description: 'This key can be used to proof that you created this network. Keep it safe',
+        netKeys
+      } 
+      ssb.private.publish(content, [feed.id], cb)
+    }
+
   })
 }
 
 // --
 
-function importFiles(ssb, cb) {
+function publishPrototypes(ssb, folders, cb) {
+  const {prototypes} = configFromPkg()
+  if (!prototypes) {
+    return cb(null, {})
+  }
+  console.error('Publishing prototypes ...')
+  makePrototypes(ssb, Object.keys(prototypes).filter(k => prototypes[k]), folders, cb)
+}
+
+function importFiles(ssb, prototypes, cb) {
   const {importers, files} = configFromPkg()
   if (!importers || !files) return cb(null, {})
   
   const fileImporter = Importer(ssb)
   Object.keys(importers).filter(k => importers[k]).forEach(modname => {
-    const m = modname == '.' ? require(resolve('.')) : require(resolve(`node_modules/${modname}`))
+    const m = localRequire(modname)
     fileImporter.use(m)
   })
   
@@ -129,7 +135,7 @@ function importFiles(ssb, cb) {
     pull.keys(files),
     pull.asyncMap( (name, cb) => {
       const {content, path} = files[name]
-      fileImporter.importFile(fileFromPath(path), {}, (err, _content) => {
+      fileImporter.importFile(fileFromPath(path), {prototypes}, (err, _content) => {
         if (err) return cb(err)
         cb(null, {
           name,
@@ -154,7 +160,7 @@ function publishMessages(ssb, folders, fileMessages, cb) {
 
   function resolveVars(obj) {
     traverse(obj).forEach(function(x) {
-      if (typeof x == 'string' && x[0] == '%') {
+      if (typeof x == 'string' && x[0] == '%' && !isMsg(x)) {
         const key = folders[x.substr(1)]
         if (key) {
           this.update(key) 
@@ -172,10 +178,10 @@ function publishMessages(ssb, folders, fileMessages, cb) {
     pull.asyncMap( (name, cb) => {
       const content = messages[name]
       resolveVars(content)
-      debug('publishing %O', content)
       ssb.publish(content, (err, msg) => {
         if (err) return cb(err)
         folders[name] = msg.key
+        console.error('Published', content.type, 'as', msg.key)
         cb(null, msg)
       })
     }),
@@ -186,23 +192,25 @@ function publishMessages(ssb, folders, fileMessages, cb) {
   )
 }
 
-function makePrototypes(ssb, modules, config, cb) {
-  const {root, prototypes} = config.tre.branches
+function makePrototypes(ssb, modules, folders, cb) {
+  const {root, prototypes} = folders
+  const result = {}
   pull(
     pull.values(modules),
     pull.asyncMap( (m, cb) =>{
-      console.error(' ', m, '...')
-      const f = require(resolve(`node_modules/${m}`)).factory
-      const content = f(config).prototype()
+      const f = localRequire(m).factory
+      const content = f({}).prototype()
       if (!content) return cb(new Error(`${m} prototype() returned no content`))
       Object.assign(content, {root, branch: prototypes})
       ssb.publish(content, cb)
     }),
     pull.drain( kv =>{
-      config.tre.prototypes = config.tre.prototypes || {}
-      config.tre.prototypes[kv.value.content.type] = kv.key
+      result[kv.value.content.type] = kv.key
       console.error(`Published ${kv.value.content.type} prototype as ${kv.key}`)
-    }, cb)
+    }, err => {
+      if (err) return cb(err)
+      cb(null, result)
+    })
   )
 }
 
@@ -274,4 +282,8 @@ function copyKeys() {
     }
     fs.copyFileSync(keySrc, join(path, 'secret'), fs.constants.COPYFILE_EXCL)
   }
+}
+
+function localRequire(modname) {
+  return modname == '.' ? require(resolve('.')) : require(resolve(`node_modules/${modname}`))
 }
