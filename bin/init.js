@@ -23,6 +23,7 @@ fs.symlinkSync(fs.realpathSync('node_modules'), path + '/node_modules')
 
 const netKeys = ssbKeys.generate()
 const caps = netKeys.public.split('.')[0]
+const network = '*' + netKeys.public
 const port = Math.floor(50000 + 15000 * Math.random())
 
 const branches = [
@@ -64,8 +65,8 @@ setTimeout( () => init(ssb, err => {
 function init(ssb, cb) {
   ssb.whoami( (err, feed) => {
     if (err) return cb(err)
-    console.error('pub key', feed.id)
-    console.error('app key', caps)
+    console.error('network', network)
+    console.error('feed id (your public key)', feed.id)
 
     const done = multicb({pluck: 1, spread: true})
     sendNetkey(netKeys, done())
@@ -79,8 +80,8 @@ function init(ssb, cb) {
           publishMessages(ssb, folders, messages, (err, branches) => {
             if (err) return cb(err)
             const config = {
+              network,
               caps: {shs: caps},
-              appKey: caps,
               port,
               ws: {port: port + 1},
               master: [browserKeys.id],
