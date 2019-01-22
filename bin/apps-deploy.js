@@ -156,7 +156,7 @@ function publish(conf, keys, content, cb) {
       pull.drain( e =>{
         const revRoot = e.key.slice(-1)[0]
         const content = e.value.value.content
-        console.log(
+        console.error(
           `${revRoot.substr(0,5)}:${e.value.key.substr(0,5)}`, content.name, content.repositoryBranch, content.commit, htime(new Date(e.value.value.timestamp)))
         webapps.push(e.value) // kv
       }, err => {
@@ -174,7 +174,7 @@ function publish(conf, keys, content, cb) {
             ssb.close()
             return cb(err)
           }
-          content['change-log'] = commits
+          content['new-commits'] = commits || []
           if (dryRun) {
             ssb.close()
             return cb(null, {value: content})
