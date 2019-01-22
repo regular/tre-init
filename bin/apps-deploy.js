@@ -9,6 +9,7 @@ const multicb = require('multicb')
 const readPkg = require('read-pkg-up').sync
 const file = require('pull-file')
 const Browserify = require('browserify')
+const crypto = require('crypto')
 const toPull = require('stream-to-pull-stream')
 const htime = require('human-time')
 const indexhtmlify = require('indexhtmlify')
@@ -55,13 +56,14 @@ isClean( (err, clean) => {
   upload(conf, keys, pkgLckPath, done())
   gitInfo(done())
    
-  done( (err, codeBlob, lockBlob, git) => {
+  done( (err, html, lockBlob, git) => {
     if (err) {
       console.error(err.message)
       process.exit(1)
     }
     const blobs = {
-      codeBlob,
+      codeBlob: html.blobHash,
+      scriptHash: html.scriptHash,
       lockBlob
     }
     const tre = conf.tre
@@ -100,11 +102,20 @@ function compile(sourceFile, opts, cb) {
     conf, { manifest: {blobs: {add: 'sink'}} }
   ), (err, ssb) => {
     if (err) return cb(err)
+    const scriptHash = crypto.createHash('sha256')
     pull(
-      toPull.source(browserify.bundle().pipe(indexhtmlify(opts).pipe(metadataify(opts)))),
-      ssb.blobs.add( (err, hash) =>{
+      toPull.source(browserify.bundle()),
+      pull.through(b => {
+        scriptHash.update(b)
+      }),
+      toPull.transform(indexhtmlify(opts)),
+      toPull.transform(metadataify(opts)),
+      ssb.blobs.add( (err, blobHash) =>{
         ssb.close()
-        cb(err, hash)
+        cb(err, {
+          blobHash,
+          scriptHash: scriptHash.digest('base64')
+        })
       })
     )
   })
