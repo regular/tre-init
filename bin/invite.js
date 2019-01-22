@@ -5,6 +5,7 @@ const ssbClient = require('scuttlebot-release/node_modules/ssb-client')
 const ssbKeys = require('scuttlebot-release/node_modules/ssb-keys')
 const {isMsg} = require('ssb-ref')
 const argv = require('minimist')(process.argv.slice(2))
+const {stringify} = require('tre-invite-code')
 const showList = require('./apps-list')
 
 const autoname = argv.name
@@ -69,8 +70,9 @@ showList(conf, keys, (err, apps) => {
       process.exit(1)
     }
     console.error('got invite code', code)
+    const network = conf.network || conf.caps && `*${conf.caps.shs}`
     const invite = {
-      caps: conf.caps,
+      network,
       autofollow: keys.id,
       autoinvite: code,
       autoname,
@@ -80,9 +82,7 @@ showList(conf, keys, (err, apps) => {
     if (!argv.compact) {
       console.log(JSON.stringify(invite, null, 2))
     } else {
-      compact = `*${invite.caps.shs}.ed25519${invite.autofollow}${invite.boot}${invite.autoinvite}`
-      if (autoname) compact += "'" + Buffer.from(autoname, 'utf8').toString('base64')
-      console.log(compact)
+      console.log(stringify(invite))
     }
   })
 })
