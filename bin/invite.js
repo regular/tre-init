@@ -70,7 +70,7 @@ showList(conf, keys, (err, apps) => {
       process.exit(1)
     }
     console.error('got invite code', code)
-    const network = conf.network || conf.caps && `*${conf.caps.shs}`
+    const network = conf.network || conf.caps && `*${conf.caps.shs}.random`
     const invite = {
       network,
       autofollow: keys.id,
@@ -86,7 +86,6 @@ showList(conf, keys, (err, apps) => {
     }
   })
 })
-
 
 function getInviteCode(conf, keys, remote, cb) {
   console.error('using identity:', keys.id)
