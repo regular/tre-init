@@ -103,6 +103,7 @@ function compile(sourceFile, opts, cb) {
   ), (err, ssb) => {
     if (err) return cb(err)
     const scriptHash = crypto.createHash('sha256')
+    scriptHash.update('\n') // remove once PR to indexhtmlify is merged
     pull(
       toPull.source(browserify.bundle()),
       pull.through(b => {
