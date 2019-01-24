@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const fs = require('fs')
-const {join, resolve} = require('path')
+const {join, resolve, dirname} = require('path')
 const pull = require('pull-stream')
 const ssbClient = require('scuttlebot-release/node_modules/ssb-client')
 const ssbKeys = require('scuttlebot-release/node_modules/ssb-keys')
@@ -18,13 +18,15 @@ const argv = require('minimist')(process.argv.slice(2))
 
 const {dryRun, force} = argv
 
-if (process.argv.length<3) {
-  console.error('USAGE: tre-apps-deploy <index.js>')
+if (argv._.length<1) {
+  console.error('USAGE: tre-apps-deploy <index.js> [--dryRun] [--force]')
   process.exit(1)
 }
 
-const sourceFile = process.argv[2]
+const sourceFile = argv._[0]
 console.error('source:', sourceFile)
+const sourcePath = dirname(sourceFile)
+console.error('source path:', sourcePath)
 
 const conf = require('rc')('tre')
 const path = conf.config
@@ -34,11 +36,11 @@ if (!path) {
 }
 const keys = ssbKeys.loadSync(join(path, '../.tre/secret'))
 
-isClean( (err, clean) => {
+isClean( sourcePath, (err, clean) => {
   if (err || !clean) {
     if (!force) process.exit(1)
   }
-  const {pkg,path} = readPkg()
+  const {pkg, path} = readPkg({cwd: sourcePath})
   const basic = {
     type: 'webapp',
     name: pkg.name,
@@ -54,7 +56,7 @@ isClean( (err, clean) => {
 
   compile(sourceFile, Object.assign({}, pkg, argv), done())
   upload(conf, keys, pkgLckPath, done())
-  gitInfo(done())
+  gitInfo(sourcePath, done())
    
   done( (err, html, lockBlob, git) => {
     if (err) {
@@ -75,7 +77,7 @@ isClean( (err, clean) => {
       git
     )
     
-    publish(conf, keys, content, (err, kv) => {
+    publish(sourcePath, conf, keys, content, (err, kv) => {
       if (err) {
         console.error('Unable to publish', err.message)
         process.exit(1)
@@ -138,7 +140,7 @@ function upload(conf, keys, path, cb) {
 }
 
 
-function publish(conf, keys, content, cb) {
+function publish(sourcePath, conf, keys, content, cb) {
   ssbClient(keys, Object.assign({},
     conf,
     {
@@ -170,7 +172,7 @@ function publish(conf, keys, content, cb) {
           content.revisionRoot = revisionRoot(webapp)
           console.error('Updating existing webapp', content.revisionRoot.substr(0, 5))
         }
-        getLogMessages(webapp, content, (err, commits) => {
+        getLogMessages(sourcePath, webapp, content, (err, commits) => {
           if (err) {
             ssb.close()
             return cb(err)
@@ -190,14 +192,14 @@ function publish(conf, keys, content, cb) {
     )
   })
 }
-function getLogMessages(webapp, content, cb) {
-  if (!webapp) return cb(null, [])
-  const before = webapp.value.content.commit
+function getLogMessages(cwd, webapp, content, cb) {
+  if (!content.commit) return cb(null, [])
+  const before = webapp && webapp.value.content.commit || ''
   const after = content.commit
-  if (!before || !after) return cb(null, [])
+  //if (!before || !after) return cb(null, [])
   if (before.includes('dirty') || after.includes('-dirty')) return cb(null, null)
-  console.log(before, after)
-  exec(`git log --pretty=oneline ${before}..${after}`, (err, logs) => {
+  console.error(`getting git log messages ${before}..${after}`)
+  exec(`git log --pretty=oneline ${before ? before+'..':''}${after}`, {cwd}, (err, logs) => {
     if (err) return cb(err)
     const lines = logs.split('\n').filter(Boolean)
     cb(null, lines)
@@ -216,14 +218,14 @@ function findWebapp(author, kvs, content) {
   return kv
 }
 
-function isClean(cb) {
-  exec('git status --porcelain', (err, status) => {
+function isClean(cwd, cb) {
+  exec('git status --porcelain', {cwd}, (err, status) => {
     if (err) {
       console.error('git status failed', err.message)
       return cb(err)
     }
     if (status.replace(/\n/g,''.length)) {
-      console.error('\nWorking directory is not clean\n')
+      console.error(`\nWorking directory is not clean: ${cwd}\n`)
       console.error(status)
       console.error('\nPlease commit and try again.\n')
       return cb(null, false)
@@ -232,12 +234,12 @@ function isClean(cb) {
   })
 }
 
-function gitInfo(cb) {
+function gitInfo(cwd, cb) {
   const done = multicb({pluck: 1, spread: true})
 
-  exec('git describe --dirty --always', done())
-  exec('git remote get-url origin', done())
-  exec('git symbolic-ref --short HEAD', done())
+  exec('git describe --dirty --always', {cwd}, done())
+  exec('git remote get-url origin', {cwd}, done())
+  exec('git symbolic-ref --short HEAD', {cwd}, done())
 
   done( (err, ref, url, branch) => {
     if (err) return cb(err)
