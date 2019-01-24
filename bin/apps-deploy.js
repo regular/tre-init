@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const fs = require('fs')
-const {join, resolve, dirname} = require('path')
+const {join, resolve, relative, dirname} = require('path')
 const pull = require('pull-stream')
 const ssbClient = require('scuttlebot-release/node_modules/ssb-client')
 const ssbKeys = require('scuttlebot-release/node_modules/ssb-keys')
@@ -23,7 +23,7 @@ if (argv._.length<1) {
   process.exit(1)
 }
 
-const sourceFile = argv._[0]
+const sourceFile = resolve(argv._[0])
 console.error('source:', sourceFile)
 const sourcePath = dirname(sourceFile)
 console.error('source path:', sourcePath)
@@ -36,18 +36,27 @@ if (!path) {
 }
 const keys = ssbKeys.loadSync(join(path, '../.tre/secret'))
 
-isClean( sourcePath, (err, clean) => {
+isClean(sourcePath, (err, clean) => {
   if (err || !clean) {
     if (!force) process.exit(1)
+    console.error('(--force is set, so we continue anyway')
   }
+
   const {pkg, path} = readPkg({cwd: sourcePath})
+  const rootDir = dirname(path)
+  const main = relative(rootDir, sourceFile)
+
+  console.error('rootDir:', rootDir)
+  console.error('main:', main)
+
   const basic = {
     type: 'webapp',
     name: pkg.name,
+    main,
     description: pkg.description,
     keywords: pkg.keywords || []
   }
-  const pkgLckPath = resolve(path, '../package-lock.json')
+  const pkgLckPath = resolve(rootDir, 'package-lock.json')
   if (!fs.existsSync(pkgLckPath)) {
     console.error('No package-lock.json found')
     process.exit(1)
@@ -56,7 +65,7 @@ isClean( sourcePath, (err, clean) => {
 
   compile(sourceFile, Object.assign({}, pkg, argv), done())
   upload(conf, keys, pkgLckPath, done())
-  gitInfo(sourcePath, done())
+  gitInfo(rootDir, done())
    
   done( (err, html, lockBlob, git) => {
     if (err) {
@@ -77,7 +86,7 @@ isClean( sourcePath, (err, clean) => {
       git
     )
     
-    publish(sourcePath, conf, keys, content, (err, kv) => {
+    publish(rootDir, conf, keys, content, (err, kv) => {
       if (err) {
         console.error('Unable to publish', err.message)
         process.exit(1)
@@ -88,15 +97,6 @@ isClean( sourcePath, (err, clean) => {
   })
 })
 
-/*
-showList(conf, keys, err  => {
-  if (err) {
-    console.error('Unable to list apps:', err.message)
-    process.exit(1)
-  }
-})
-*/
-
 function compile(sourceFile, opts, cb) {
   const browserify = Browserify()
   browserify.add(sourceFile)
@@ -105,7 +105,7 @@ function compile(sourceFile, opts, cb) {
   ), (err, ssb) => {
     if (err) return cb(err)
     const scriptHash = crypto.createHash('sha256')
-    scriptHash.update('\n') // remove once PR to indexhtmlify is merged
+    scriptHash.update('\n') // TODO remove once PR to indexhtmlify is merged
     pull(
       toPull.source(browserify.bundle()),
       pull.through(b => {
@@ -139,8 +139,7 @@ function upload(conf, keys, path, cb) {
   })
 }
 
-
-function publish(sourcePath, conf, keys, content, cb) {
+function publish(path, conf, keys, content, cb) {
   ssbClient(keys, Object.assign({},
     conf,
     {
@@ -172,7 +171,7 @@ function publish(sourcePath, conf, keys, content, cb) {
           content.revisionRoot = revisionRoot(webapp)
           console.error('Updating existing webapp', content.revisionRoot.substr(0, 5))
         }
-        getLogMessages(sourcePath, webapp, content, (err, commits) => {
+        getLogMessages(path, webapp, content, (err, commits) => {
           if (err) {
             ssb.close()
             return cb(err)
@@ -192,6 +191,7 @@ function publish(sourcePath, conf, keys, content, cb) {
     )
   })
 }
+
 function getLogMessages(cwd, webapp, content, cb) {
   if (!content.commit) return cb(null, [])
   const before = webapp && webapp.value.content.commit || ''
