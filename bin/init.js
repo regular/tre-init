@@ -126,7 +126,7 @@ function importFiles(ssb, prototypes, cb) {
   const {importers, files} = configFromPkg()
   if (!importers || !files) return cb(null, {})
   
-  const fileImporter = Importer(ssb)
+  const fileImporter = Importer(ssb, {prototypes})
   Object.keys(importers).filter(k => importers[k]).forEach(modname => {
     const m = localRequire(modname)
     fileImporter.use(m)
@@ -136,7 +136,9 @@ function importFiles(ssb, prototypes, cb) {
     pull.keys(files),
     pull.asyncMap( (name, cb) => {
       const {content, path} = files[name]
-      fileImporter.importFile(fileFromPath(path), {prototypes}, (err, _content) => {
+      const paths = Array.isArray(path) ? path : [path]
+
+      fileImporter.importFiles(paths.map(fileFromPath), (err, _content) => {
         if (err) return cb(err)
         cb(null, {
           name,
