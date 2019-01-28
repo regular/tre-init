@@ -20,7 +20,7 @@
     "tre"
   ],
   "author": "Jan Bölsche <jan@lagomorph.de> (https://regular.codes/)",
-  "license": "ISC",
+  "license": "AGPL-3.0-or-later",
   "dependencies": {
     "browserify": "^16.2.3",
     "budo": "^11.4.1",

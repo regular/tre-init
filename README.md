@@ -99,3 +99,6 @@ Here's an example message piblished by `tre-apps-deploy`
   "signature": "rtkZoJkNRDoWUi39gU+LMmVfkOODLdLM/B7sSnbpXNG02/H21DhNazmEmK5ZbUJrEw5R6HgBJLaSY0G+shbUCw==.sig.ed25519"
 }
 ```
+---
+
+Licsense: AGPLv3 - Copyright 2019 Jan Boelsche
