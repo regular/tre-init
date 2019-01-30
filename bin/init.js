@@ -126,7 +126,7 @@ function importFiles(ssb, prototypes, cb) {
   const {importers, files} = configFromPkg()
   if (!importers || !files) return cb(null, {})
   
-  const fileImporter = Importer(ssb, {prototypes})
+  const fileImporter = Importer(ssb, {tre: {prototypes}})
   Object.keys(importers).filter(k => importers[k]).forEach(modname => {
     const m = localRequire(modname)
     fileImporter.use(m)

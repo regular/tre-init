@@ -42,7 +42,7 @@
     "ssb-ref": "^2.13.9",
     "stream-to-pull-stream": "^1.7.2",
     "traverse": "^0.6.6",
-    "tre-file-importer": "^3.1.0",
+    "tre-file-importer": "^3.1.2",
     "tre-invite-code": "^1.0.1"
   },
   "devDependencies": {
