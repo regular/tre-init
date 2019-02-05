@@ -37,23 +37,6 @@ if (!module.parent) {
   let pkg = JSON.parse(fs.readFileSync(sourceFile))
   pkg = pkg['tre-init'] || pkg
 
-  doImport(conf, keys, sourcePath, pkg, argv, (err, newConf) => {
-    if (err) {
-      console.error(err)
-      process.exit(1)
-    }
-    console.log(JSON.stringify(newConf, null, 2))
-  })
-}
-
-module.exports = doImport
-
-function doImport(conf, keys, basedir, pkg, opts, cb) {
-  const {dryRun} = opts
-  const importConfig = conf.tre || conf
-  debug('pkg: %O', pkg)
-  debug('importConfig: %O', importConfig)
-  debug('root: %s', importConfig.branches.root)
   ssbClient(keys, Object.assign({},
     conf,
     { manifest: {
@@ -63,42 +46,62 @@ function doImport(conf, keys, basedir, pkg, opts, cb) {
       }
     }}
   ), (err, ssb) => {
-    if (err) return cb(err)
-
-    if (opts.dryRun) {
-      console.error("Won't publish because of --dryRun option")
-      ssb.blobs.add = cb => pull.onEnd(err => cb(err, 'fake-hash'))
-      ssb.publish = function(content, cb) {
-        const msg = {
-          key: 'fake-key',
-          value: {
-            content
-          }
-        }
-        console.error('would publish', JSON.stringify(msg, null, 2))
-        cb(null, msg)
-      }
+    if (err) {
+      console.error(err.message)
+      process.exit(1)
     }
+    doImport(ssb, conf, sourcePath, pkg, argv, (err, newConf) => {
+      if (err) {
+        console.error(err)
+        process.exit(1)
+      }
+      console.log(JSON.stringify(newConf, null, 2))
+    })
+  })
+}
 
-    const branches = Object.assign({}, importConfig.branches, pkg.branches)
-    debug('branches are: %O', branches)
-    publishPrototypes(ssb, pkg.prototypes, branches, (err, prototypes) => {
+module.exports = doImport
+
+function doImport(ssb, conf, basedir, pkg, opts, cb) {
+  const {dryRun} = opts
+  const importConfig = conf.tre || conf
+  debug('pkg: %O', pkg)
+  debug('importConfig: %O', importConfig)
+  debug('root: %s', importConfig.branches.root)
+
+  if (opts.dryRun) {
+    console.error("Won't publish because of --dryRun option")
+    ssb.blobs.add = cb => pull.onEnd(err => cb(err, 'fake-hash'))
+    ssb.publish = function(content, cb) {
+      const msg = {
+        key: 'fake-key',
+        value: {
+          content
+        }
+      }
+      console.error('would publish', JSON.stringify(msg, null, 2))
+      cb(null, msg)
+    }
+  }
+
+  const branches = Object.assign({}, importConfig.branches, pkg.branches)
+  debug('branches are: %O', branches)
+  publishPrototypes(ssb, pkg.prototypes, branches, (err, prototypes) => {
+    if (err) return cb(err)
+    prototypes = Object.assign({}, importConfig.prototypes || {}, prototypes)
+    debug('prototypes are: %O', prototypes)
+    const importers = Object.assign({}, importConfig.importers || {}, pkg.importers || {})
+    debug('importers are: %O', importers)
+    importFiles(ssb, importers, pkg.files, prototypes, basedir, (err, fileMessages) => {
       if (err) return cb(err)
-      prototypes = Object.assign({}, importConfig.prototypes || {}, pkg.prototypes || {}, prototypes)
-      debug('prototypes are: %O', prototypes)
-      const importers = Object.assign({}, importConfig.importers || {}, pkg.importers || {})
-      debug('importers are: %O', importers)
-      importFiles(ssb, importers, pkg.files, prototypes, basedir, (err, fileMessages) => {
+      const messages = Object.assign({}, fileMessages, pkg.messages || {})
+      publishMessages(ssb, branches, messages, (err, branches) => {
         if (err) return cb(err)
-        const messages = Object.assign({}, fileMessages, pkg.messages || {})
-        publishMessages(ssb, branches, messages, (err, branches) => {
-          if (err) return cb(err)
-          const newConfig = {
-            branches, prototypes
-          }
-          ssb.close()
-          cb(null, newConfig)
-        })
+        const newConfig = {
+          branches, prototypes
+        }
+        ssb.close()
+        cb(null, newConfig)
       })
     })
   })
