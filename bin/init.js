@@ -30,12 +30,12 @@ const branches = [
   {type: 'folder', name: 'Users', key: 'about'},
   {type: 'folder', name: '.Machines', key: 'machines'},
   {type: 'folder', name: '.Prototypes', key: 'prototypes'},
-  {type: 'folder', name: 'Assets', children: [
+  {type: 'folder', name: 'Assets', key: 'assets', children: [
     {type: 'folder', name: 'Images', key: 'images'},
     {type: 'folder', name: 'Stylesheets', key: 'stylesheets'},
     {type: 'folder', name: 'Fonts', key: 'fonts'},
   ]},
-  {type: 'folder', name: '.Code', children: [
+  {type: 'folder', name: '.Code', key: 'code', children: [
     {type: 'folder', name: 'WebApps', key: 'webapps'}
   ]},
   {type: 'folder', name: '.Trash', key: 'trash'},
