@@ -52,6 +52,8 @@ isClean(sourcePath, (err, clean) => {
   const basic = {
     type: 'webapp',
     name: pkg.name,
+    root: conf.tre.branches.root,
+    branch: conf.tre.branches.webapps,
     main,
     description: pkg.description,
     keywords: pkg.keywords || []
@@ -105,7 +107,6 @@ function compile(sourceFile, opts, cb) {
   ), (err, ssb) => {
     if (err) return cb(err)
     const scriptHash = crypto.createHash('sha256')
-    scriptHash.update('\n') // TODO remove once PR to indexhtmlify is merged
     pull(
       toPull.source(browserify.bundle()),
       pull.through(b => {
