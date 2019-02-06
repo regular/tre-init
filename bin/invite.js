@@ -46,8 +46,8 @@ showList(conf, keys, (err, apps) => {
     console.error('No wenapps found in network')
   }
   if (apps.length == 1 && !webapp) {
-    webapp = apps[0].key
-  }else if (apps.length > 1 && !webapp) {
+    webapp = apps[0].value.content.revisionRoot || apps[0].key
+  } else if (apps.length > 1 && !webapp) {
     console.error('Please specify a webapp (Example: --webapp \'%lvxL\')')
     process.exit(1)
   }
