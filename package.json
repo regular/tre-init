@@ -10,7 +10,9 @@
     "tre-pub-config": "bin/pub.js",
     "tre-invite": "bin/invite.js",
     "tre-apps-list": "bin/apps-list.js",
-    "tre-apps-deploy": "bin/apps-deploy.js"
+    "tre-apps-deploy": "bin/apps-deploy.js",
+    "tre-import": "bin/import.js",
+    "tre-export": "bin/export.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
