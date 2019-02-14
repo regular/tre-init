@@ -1,6 +1,6 @@
 {
   "name": "tre-init",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "description": "Initialize and test a new ssb network",
   "main": "index.js",
   "bin": {
