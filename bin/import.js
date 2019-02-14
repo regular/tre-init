@@ -2,7 +2,7 @@
 const fs = require('fs')
 const {join, resolve, dirname} = require('path')
 const {isMsg} = require('ssb-ref')
-const causalSort = require('ssb-sort')
+const causalOrder = require('../lib/causal-order')
 const merge = require('lodash.merge')
 const traverse = require('traverse')
 const argv = require('minimist')(process.argv.slice(2))
@@ -173,18 +173,19 @@ function publishMessages(ssb, folders, messages, cb) {
   if (!Object.keys(messages)) return cb(null, folders)
 
   const sorted = causalOrder(messages)
-  debug('thread: %O', sorted)
+  debug('Causal order:')
+  sorted.forEach(kv => debug('%s', kv.key))
 
   pull(
     pull.values(sorted),
-    pull.asyncMap( (msg, cb) => {
-      const content = msg.value
-      const name = msg.key
+    pull.asyncMap( (kv, cb) => {
+      const content = kv.value
+      const name = kv.key
       resolveVars(content)
       ssb.publish(content, (err, msg) => {
         if (err) return cb(err)
         folders[name] = msg.key
-        console.error('Published', content.type, 'as', msg.key)
+        console.error('Published', content.type, name, 'as', msg.key)
         cb(null, msg)
       })
     }),
@@ -221,44 +222,3 @@ function localRequire(modname) {
   return modname == '.' ? require(resolve('.')) : require(resolve(`node_modules/${modname}`))
 }
 
-function causalOrder(messages) {
-
-  function makeMsgRef(k) {
-    if (k[0] !== '%') k = `%${k}`
-    const template = "%+++++++++++++++++++++++++++++++++++++++++++=.sha256"
-    return k + template.substr(k.length)
-  }
-
-  const replacements = {}
-  const thread = Object.keys(messages).map(k => {
-    const newKey = makeMsgRef(k)
-    if (newKey !== k) {
-      replacements['KEY_' + newKey] = k
-    }
-      
-    const msg = {
-      key: makeMsgRef(k),
-      value: messages[k]
-    }
-    traverse(msg.value).forEach(function(x) {
-      if (typeof x == 'string' && x[0] == '%' && !isMsg(x)) {
-        const newX = makeMsgRef(x)
-        replacements[newX] = x
-        this.update(newX)
-      }
-    })
-    return msg
-  })
-  const sortedThread = causalSort(thread)
-  return sortedThread.map(msg => {
-    if (replacements['KEY_' + msg.key]) {
-      msg.key = replacements['KEY_' + msg.key]
-    }
-    traverse(msg.value).forEach( function(x) {
-      if (replacements[x]) {
-        this.update(replacements[x])
-      }
-    })
-    return msg
-  })
-}
