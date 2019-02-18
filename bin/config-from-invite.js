@@ -50,7 +50,8 @@ pull(
       },
       autofollow,
       autoinvite,
-      autoname
+      autoname,
+      boot
     })
     console.log(JSON.stringify(config, null, 2))
   })
