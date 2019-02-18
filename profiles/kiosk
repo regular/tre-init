@@ -1,0 +1,23 @@
+{
+  "allowPrivate": true,
+  "gossip": {
+    "connections": 4
+  },
+  "blobs": {
+    "legacy": false,
+    "sympathy": 10,
+    "max": 3221225472
+  },
+  "timers": {
+    "handshake": 30000,
+    "keepalive": 240000
+  },
+  "plugins": {
+    "ssb-revisions": true,
+    "ssb-autofollow": true,
+    "ssb-autoname": true,
+    "ssb-autoinvite": true,
+    "tre-boot": true,
+    "tre-client": true
+  }
+}
