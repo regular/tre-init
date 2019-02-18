@@ -12,7 +12,8 @@
     "tre-apps-list": "bin/apps-list.js",
     "tre-apps-deploy": "bin/apps-deploy.js",
     "tre-import": "bin/import.js",
-    "tre-export": "bin/export.js"
+    "tre-export": "bin/export.js",
+    "tre-config-from-invite": "bin/config-from-invite.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -24,6 +25,7 @@
   "author": "Jan Bölsche <jan@lagomorph.de> (https://regular.codes/)",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
+    "bl": "^2.2.0",
     "browserify": "^16.2.3",
     "budo": "^11.4.1",
     "chrome-localstorage": "^1.0.0",
@@ -34,6 +36,7 @@
     "minimist": "^1.2.0",
     "mkdirp": "^0.5.1",
     "pull-file": "^1.1.0",
+    "pull-stdio": "^1.0.0",
     "pull-stream": "^3.6.9",
     "rc": "^1.2.8",
     "read-pkg-up": "^4.0.0",

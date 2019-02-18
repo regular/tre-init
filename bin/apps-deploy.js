@@ -16,10 +16,10 @@ const indexhtmlify = require('indexhtmlify')
 const metadataify = require('metadataify')
 const argv = require('minimist')(process.argv.slice(2))
 
-const {dryRun, force} = argv
+const {dryRun, force, noCommitLog} = argv
 
 if (argv._.length<1) {
-  console.error('USAGE: tre-apps-deploy <index.js> [--dryRun] [--force]')
+  console.error('USAGE: tre-apps-deploy <index.js> [--dryRun] [--force] [--noCommitLog]')
   process.exit(1)
 }
 
@@ -176,6 +176,9 @@ function publish(path, conf, keys, content, cb) {
           if (err) {
             ssb.close()
             return cb(err)
+          }
+          if (noCommitLog) {
+            commits = []
           }
           content['new-commits'] = commits || []
           if (dryRun) {
