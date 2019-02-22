@@ -22,7 +22,5 @@ localStorage.write(domain, 'tre-keypair', keys, {}, err => {
     process.exit(1)
   }
   console.error(`Written private key to localStorage at ${localStorage.getOpts({}).dbpath} for domain ${domain}`)
-  config.master = config.master || []
-  config.master.push(keys.id)
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+  console.log(keys.id)
 })

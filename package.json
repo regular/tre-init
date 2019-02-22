@@ -14,7 +14,8 @@
     "tre-import": "bin/import.js",
     "tre-export": "bin/export.js",
     "tre-config-from-invite": "bin/config-from-invite.js",
-    "tre-browser-keygen": "bin/browser-keygen.js"
+    "tre-browser-keygen": "bin/browser-keygen.js",
+    "tre-insert-master-key": "bin/insert-master-key.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
