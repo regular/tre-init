@@ -13,7 +13,8 @@
     "tre-apps-deploy": "bin/apps-deploy.js",
     "tre-import": "bin/import.js",
     "tre-export": "bin/export.js",
-    "tre-config-from-invite": "bin/config-from-invite.js"
+    "tre-config-from-invite": "bin/config-from-invite.js",
+    "tre-browser-keygen": "bin/browser-keygen.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -28,7 +29,7 @@
     "bl": "^2.2.0",
     "browserify": "^16.2.3",
     "budo": "^11.4.1",
-    "chrome-localstorage": "^1.0.0",
+    "chrome-localstorage": "^1.2.0",
     "human-time": "0.0.2",
     "indexhtmlify": "^2.0.0",
     "lodash.merge": "^4.6.1",
