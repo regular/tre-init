@@ -16,7 +16,7 @@ const port = config.ws.port
 const host = config.host || 'localhost'
 const domain = `${host}:${port}`
 
-localStorage.write(domain, 'tre-keypair', keys, {}, err => {
+localStorage.write(domain, 'tre-keypair', JSON.stringify(keys), {}, err => {
   if (err) {
     console.error(err.message)
     process.exit(1)
