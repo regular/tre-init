@@ -36,6 +36,7 @@ console.error('remote:', remote)
 const keys = ssbKeys.loadSync(join(path, '../.tre/secret'))
 
 let webapp = argv.webapp
+const count = argv.count || 1
 
 showList(conf, keys, (err, apps) => {
   if (err) {
@@ -64,7 +65,7 @@ showList(conf, keys, (err, apps) => {
   }
   const boot = webapp
   console.error('boot message is', webapp)
-  getInviteCode(conf, keys, remote, (err, code) => {
+  getInviteCode(conf, keys, remote, count, (err, code) => {
     if (err) {
       console.error('Unable to connect to remote sbot:', err.message)
       process.exit(1)
@@ -87,9 +88,10 @@ showList(conf, keys, (err, apps) => {
   })
 })
 
-function getInviteCode(conf, keys, remote, cb) {
+function getInviteCode(conf, keys, remote, count, cb) {
   console.error('using identity:', keys.id)
-  console.error('using appKey:', conf.appKey)
+  console.error('using appKey:', conf.caps.shs)
+  console.error('asking for', count, 'invite(s)')
   ssbClient(keys, {
     caps: conf.caps,
     appKey: conf.appKey,
@@ -97,7 +99,7 @@ function getInviteCode(conf, keys, remote, cb) {
     manifest: {invite: {create: 'async'}}
   }, (err, ssb) => {
     if (err) return cb(err)
-    ssb.invite.create(1, (err, code) => {
+    ssb.invite.create(count, (err, code) => {
       ssb.close()
       cb(err, code)
     })
