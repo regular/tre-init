@@ -159,8 +159,8 @@ function publish(path, conf, keys, content, cb) {
       pull.drain( e =>{
         const revRoot = e.key.slice(-1)[0]
         const content = e.value.value.content
-        console.error(
-          `${revRoot.substr(0,5)}:${e.value.key.substr(0,5)}`, content.name, content.repositoryBranch, content.commit, htime(new Date(e.value.value.timestamp)))
+        console.error('',
+          `${revRoot.substr(0,5)}:${e.value.key.substr(0,5)}`, content.name, content.repositoryBranch, content.commit, htime(new Date(e.value.value.timestamp)), 'by', e.value.value.author.substr(0, 5))
         webapps.push(e.value) // kv
       }, err => {
         if (err) return cb(err)
