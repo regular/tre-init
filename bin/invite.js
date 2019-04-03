@@ -47,21 +47,21 @@ showList(conf, keys, (err, apps) => {
     console.error('No wenapps found in network')
   }
   if (apps.length == 1 && !webapp) {
-    webapp = apps[0].value.content.revisionRoot || apps[0].key
+    webapp = revisionRoot(apps[0])
   } else if (apps.length > 1 && !webapp) {
     console.error('Please specify a webapp (Example: --webapp \'%lvxL\')')
     process.exit(1)
   }
   if (webapp && !isMsg(webapp)) {
     const kv = apps.find(kv => {
-      const revRoot = kv.value.content.revisionRoot || kv.key
+      const revRoot = revisionRoot(kv)
       return revRoot.startsWith(webapp)
     })
     if (!kv) {
       console.error('No webapp found that starts with', webapp)
       process.exit(1)
     }
-    webapp = kv.key
+    webapp = revisionRoot(kv)
   }
   const boot = webapp
   console.error('boot message is', webapp)
@@ -104,4 +104,10 @@ function getInviteCode(conf, keys, remote, count, cb) {
       cb(err, code)
     })
   })
+}
+
+// -- utils
+
+function revisionRoot(kv) {
+  return kv.value.content.revisionRoot || kv.key
 }
