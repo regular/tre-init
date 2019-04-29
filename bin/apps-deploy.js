@@ -65,7 +65,14 @@ isClean(sourcePath, (err, clean) => {
   }
   const done = multicb({pluck:1, spread: true})
 
-  compile(sourceFile, Object.assign({}, pkg, argv), done())
+  if (argv.blob) {
+    done()(null, {
+      blobHash: argv.blob,
+      scriptHash: argv.hash
+    })
+  } else {
+    compile(sourceFile, Object.assign({}, pkg, argv), done())
+  }
   upload(conf, keys, pkgLckPath, done())
   gitInfo(rootDir, done())
    
