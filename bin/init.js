@@ -77,6 +77,11 @@ function init(ssb, cb) {
           caps: {shs: caps},
           port,
           ws: {port: port + 1},
+          blobs: {
+            legacy: false,
+            sympathy: 10,
+            max: 3221225472
+          },  
           master: [browserKeys.id],
           budo: {
             host: 'localhost',
