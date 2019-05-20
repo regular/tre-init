@@ -92,7 +92,8 @@ isClean(sourcePath, (err, clean) => {
       basic,
       {config: {tre}},
       blobs,
-      git
+      git,
+      {name: `${basic.name} [${git.repositoryBranch.substr(0, 4)}]`}
     )
     
     publish(rootDir, conf, keys, content, (err, kv) => {
