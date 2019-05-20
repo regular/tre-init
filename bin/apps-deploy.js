@@ -16,7 +16,7 @@ const indexhtmlify = require('indexhtmlify')
 const metadataify = require('metadataify')
 const argv = require('minimist')(process.argv.slice(2))
 
-const {dryRun, force, noCommitLog} = argv
+const {debug, dryRun, force, noCommitLog} = argv
 
 if (argv._.length<1) {
   console.error('USAGE: tre-apps-deploy <index.js> [--dryRun] [--force] [--noCommitLog]')
@@ -221,10 +221,20 @@ function getLogMessages(cwd, webapp, content, cb) {
 function findWebapp(author, kvs, content) {
   const {repository, repositoryBranch} = content
   const kv = kvs.find( ({key, value}) => {
+    if (debug) console.error(`${key.substr(0,5)}: `)
     const {content} = value
-    if (value.author !== author) return false
-    if (content.repository !== repository) return false
-    if (content.repositoryBranch !== repositoryBranch) return false
+    if (value.author !== author) {
+      if (debug) console.error('wrong author')
+      return false
+    }
+    if (content.repository !== repository) {
+      if (debug) console.error('wrong repo')
+      return false
+    }
+    if (content.repositoryBranch !== repositoryBranch) {
+      if (debug) console.error('wrong repo branch')
+      return false
+    }
     return true
   })
   return kv
