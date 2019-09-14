@@ -16,6 +16,11 @@ const port = config.ws.port
 const host = config.host || 'localhost'
 const domain = `${host}:${port}`
 
+process.on('unhandledRejection', err=>{
+  console.error(err.message)
+  process.exit(1)
+})
+
 localStorage.write(domain, 'tre-keypair', JSON.stringify(keys), {}, err => {
   if (err) {
     console.error(err.message)
