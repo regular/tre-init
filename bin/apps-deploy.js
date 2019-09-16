@@ -164,6 +164,10 @@ function publish(path, conf, keys, content, cb) {
     const webapps = []
     pull(
       ssb.revisions.messagesByType('webapp'),
+      // TODO: we must not use an index (messagesByType) here
+      // as long as that implies allowAllAuthors!
+      // we pick up the wron app if it was altered by someone except
+      // the original author
       pull.drain( e =>{
         const revRoot = e.key.slice(-1)[0]
         const content = e.value.value.content
@@ -172,9 +176,18 @@ function publish(path, conf, keys, content, cb) {
         webapps.push(e.value) // kv
       }, err => {
         if (err) return cb(err)
-        const webapp = findWebapp(keys.id, webapps, content)
+        let webapp = findWebapp(keys.id, webapps, content)
+        if (!argv.revRoot) {
+          console.error(`Specify --revRoot. Suggested revRoot: ${webapp && revisionRoot(webapp).slice(0,6)}`)
+        } else {
+          webapp = webapps.find( kv=>revisionRoot(kv).startsWith(argv.revRoot))
+        }
         if (!webapp) {
           console.error('First deployment of this webapp')
+          if (!argv.first) {
+            console.error('specify --first if you want this to happen')
+            process.exit(1)
+          }
         } else {
           content.revisionBranch = webapp.key
           content.revisionRoot = revisionRoot(webapp)
