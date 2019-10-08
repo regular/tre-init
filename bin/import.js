@@ -25,7 +25,7 @@ if (!module.parent) {
   const keys = ssbKeys.loadSync(join(path, '../.tre/secret'))
 
   if (argv._.length<1) {
-    console.error('USAGE: tre-import <json-file> [--dryRun]')
+    console.error('USAGE: tre-import <json-file> [--dryRun] [--publish-prototype TYPE]')
     process.exit(1)
   }
 
@@ -85,7 +85,11 @@ function doImport(ssb, conf, basedir, pkg, opts, cb) {
 
   const branches = Object.assign({}, importConfig.branches, pkg.branches)
   debug('branches are: %O', branches)
-  publishPrototypes(ssb, pkg.prototypes, branches, (err, prototypes) => {
+  const protos = pkg.prototypes || {}
+  debug('prototypes from package: %O', pkg.prototypes)
+  debug('prototypes from command line: %O', conf['publish-prototype'])
+  ;(arr(conf['publish-prototype']) || []).forEach(p =>{protos[p] = true})
+  publishPrototypes(ssb, protos, branches, (err, prototypes) => {
     if (err) return cb(err)
     prototypes = Object.assign({}, importConfig.prototypes || {}, prototypes)
     debug('prototypes are: %O', prototypes)
@@ -221,3 +225,8 @@ function localRequire(modname) {
   return modname == '.' ? require(resolve('.')) : require(resolve(`node_modules/${modname}`))
 }
 
+function arr(x) {
+  if (!x) return []
+  if (Array.isArray(x)) return x
+  return [x]
+}
