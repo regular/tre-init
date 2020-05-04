@@ -14,6 +14,8 @@ const toPull = require('stream-to-pull-stream')
 const htime = require('human-time')
 const indexhtmlify = require('indexhtmlify')
 const metadataify = require('metadataify')
+const getRemote = require('../lib/get-remote')
+const uploadBlobs = require('../lib/upload-blobs')
 const argv = require('minimist')(process.argv.slice(2))
 
 const {debug, dryRun, force, noCommitLog} = argv
@@ -35,6 +37,9 @@ if (!path) {
   process.exit(1)
 }
 const keys = ssbKeys.loadSync(join(path, '../.tre/secret'))
+
+const remote = getRemote(conf)
+console.error(`remote is ${remote}`)
 
 isClean(sourcePath, (err, clean) => {
   if (err || !clean) {
@@ -73,14 +78,15 @@ isClean(sourcePath, (err, clean) => {
   } else {
     compile(sourceFile, Object.assign({}, pkg, argv), done())
   }
-  upload(conf, keys, pkgLckPath, done())
+  uploadBlobs([file(pkgLckPath)], conf, keys, remote, done())
   gitInfo(rootDir, done())
    
-  done( (err, html, lockBlob, git) => {
+  done( (err, html, hashes, git) => {
     if (err) {
       console.error(err.message)
       process.exit(1)
     }
+    const lockBlob = hashes[0]
     const blobs = {
       codeBlob: html.blobHash,
       scriptHash: html.scriptHash,
@@ -110,26 +116,21 @@ isClean(sourcePath, (err, clean) => {
 function compile(sourceFile, opts, cb) {
   const browserify = Browserify()
   browserify.add(sourceFile)
-  ssbClient(keys, Object.assign({},
-    conf, { manifest: {blobs: {add: 'sink'}} }
-  ), (err, ssb) => {
+  const scriptHash = crypto.createHash('sha256')
+  const source = pull(
+    toPull.source(browserify.bundle()),
+    pull.through(b => {
+      scriptHash.update(b)
+    }),
+    toPull.transform(indexhtmlify(opts)),
+    toPull.transform(metadataify(opts))
+  )
+  uploadBlobs([source], conf, keys, remote, (err, hashes) => {
     if (err) return cb(err)
-    const scriptHash = crypto.createHash('sha256')
-    pull(
-      toPull.source(browserify.bundle()),
-      pull.through(b => {
-        scriptHash.update(b)
-      }),
-      toPull.transform(indexhtmlify(opts)),
-      toPull.transform(metadataify(opts)),
-      ssb.blobs.add( (err, blobHash) =>{
-        ssb.close()
-        cb(err, {
-          blobHash,
-          scriptHash: scriptHash.digest('base64')
-        })
-      })
-    )
+    cb(null, {
+      blobHash: hashes[0],
+      scriptHash: scriptHash.digest('base64')
+    })
   })
 }
 
