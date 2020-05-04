@@ -102,7 +102,7 @@ isClean(sourcePath, (err, clean) => {
         process.exit(1)
       }
       console.error('Published as', kv.key)
-      console.log(kv)
+      console.log(JSON.stringify(kv, null, 2))
     })
   })
 })
